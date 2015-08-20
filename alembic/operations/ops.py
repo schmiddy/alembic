@@ -1875,6 +1875,10 @@ class UpgradeOps(OpContainer):
 
     """
 
+    def __init__(self, ops=(), upgrade_token="upgrades"):
+        super(UpgradeOps, self).__init__(ops=ops)
+        self.upgrade_token = upgrade_token
+
     def reverse_into(self, downgrade_ops):
         downgrade_ops.ops[:] = list(reversed(
             [op.reverse() for op in self.ops]
@@ -1895,6 +1899,10 @@ class DowngradeOps(OpContainer):
 
     """
 
+    def __init__(self, ops=(), downgrade_token="downgrades"):
+        super(DowngradeOps, self).__init__(ops=ops)
+        self.downgrade_token = downgrade_token
+
     def reverse(self):
         return UpgradeOps(
             ops=list(reversed(
@@ -1911,6 +1919,18 @@ class MigrationScript(MigrateOperation):
 
     A normal :class:`.MigrationScript` object would contain a single
     :class:`.UpgradeOps` and a single :class:`.DowngradeOps` directive.
+    These are accessible via the ``.upgrade_ops`` and ``.downgrade_ops``
+    attributes.
+
+    In the case of an autogenerate option that runs multiple times,
+    such as the multiple database example in the "multidb" template,
+    the ``.upgrade_ops`` and ``.downgrade_ops`` will be present as lists.
+    Each :class:`.UpgradeOps` and :class:`.DowngradeOps` will refer to
+    individual "upgrade_token" and "downgrade_token" values.
+
+    .. versionchanged:: 0.8.1 the ``.upgrade_ops`` and ``.downgrade_ops``
+       attributes are converted into lists if multiple autogenerate
+       passes proceed on the same :class:`.MigrationScript` object.
 
     .. seealso::
 
@@ -1933,3 +1953,22 @@ class MigrationScript(MigrateOperation):
         self.depends_on = depends_on
         self.upgrade_ops = upgrade_ops
         self.downgrade_ops = downgrade_ops
+
+    def append_upgrade_downgrade_ops(self, upgrade_ops, downgrade_ops):
+        """add the given :class:`.UpgradeOps` and :class:`.DowngradeOps`
+        to this :class:`.MigrationScript`.
+
+        This will convert the existing ``.upgrade_ops`` and ``.downgrade_ops``
+        elements into lists if they are not already, and append the new
+        entries.
+
+        """
+        if not isinstance(self.upgrade_ops, list):
+            assert isinstance(self.upgrade_ops, UpgradeOps)
+            self.upgrade_ops = [self.upgrade_ops]
+        if not isinstance(self.downgrade_ops, list):
+            assert isinstance(self.downgrade_ops, DowngradeOps)
+            self.downgrade_ops = [self.downgrade_ops]
+
+        self.upgrade_ops.append(upgrade_ops)
+        self.downgrade_ops.append(downgrade_ops)

@@ -16,8 +16,15 @@ log = logging.getLogger(__name__)
 
 
 def _populate_migration_script(autogen_context, migration_script):
-    _produce_net_changes(autogen_context, migration_script.upgrade_ops)
-    migration_script.upgrade_ops.reverse_into(migration_script.downgrade_ops)
+    if isinstance(migration_script.upgrade_ops, list):
+        upgrade_ops = migration_script.upgrade_ops[-1]
+        downgrade_ops = migration_script.downgrade_ops[-1]
+    else:
+        upgrade_ops = migration_script.upgrade_ops
+        downgrade_ops = migration_script.downgrade_ops
+
+    _produce_net_changes(autogen_context, upgrade_ops)
+    upgrade_ops.reverse_into(downgrade_ops)
 
 
 comparators = util.Dispatcher(uselist=True)
